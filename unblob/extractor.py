@@ -38,60 +38,94 @@ def fix_permission(path: Path):
 
     path.chmod(mode)
 
-
 def is_recursive_link(path: Path) -> bool:
+    """Check if the symlink creates a loop."""
     try:
-        path.resolve()
-    except RuntimeError:
+        path.resolve(strict=True)
+    except RecursionError:
         return True
     return False
 
-
-def fix_symlink(path: Path, outdir: Path, task_result: TaskResult) -> Path:
-    """Rewrites absolute symlinks to point within the extraction directory (outdir).
-
-    If it's not a relative symlink it is either removed it it attempts
-    to traverse outside of the extraction directory or rewritten to be
-    fully portable (no mention of the extraction directory in the link
-    value).
-    """
-    if is_recursive_link(path):
-        logger.error("Symlink loop identified, removing", path=path)
-        error_report = MaliciousSymlinkRemoved(
-            link=path.as_posix(), target=os.readlink(path)
-        )
-        task_result.add_report(error_report)
-        path.unlink()
+def safe_resolve(path: Path, root_dir: Path) -> Path:
+    try:
+        return path.resolve()
+    except RuntimeError as e:
+        logger.error(f"Symlink loop detected for {path}: {e}")
+        # Return the path as is or handle it according to your needs
         return path
 
-    raw_target = os.readlink(path)
-    if not raw_target:
-        logger.error("Symlink with empty target, removing.")
-        path.unlink()
-        return path
+def is_potential_loop(target: Path, root_dir: Path) -> bool:
+    resolved_target = target.resolve()
+    return resolved_target.is_symlink() and resolved_target.resolve() == target
 
-    target = Path(raw_target)
+def fix_symlink(path: Path, root_dir: Path, task_result : TaskResult) -> Path:
+    '''
+    Make a symlink relative to root_dir.
+    '''
+    assert(path.is_symlink())
 
-    if target.is_absolute():
-        target = Path(target.as_posix().lstrip("/"))
+    target = path.readlink()
+
+    if Path(target).is_absolute():
+        # Convert absolute target to be relative to root_dir
+        absolute_target = root_dir / str(target).lstrip('/')
     else:
-        target = path.resolve()
+        # Resolve relative target against symlink's directory
+        absolute_target = safe_resolve(path.parent / target, root_dir)
+        logger.debug(f"Target {target} is relative, resolved to {absolute_target}")
 
-    safe = is_safe_path(outdir, target)
+    # Check if the absolute target exists within root_dir. Also check that it's not a dangling symlink
+    if not absolute_target.exists() and not os.path.lexists(absolute_target):
+        logger.warning(f"Symlink {path} -> {absolute_target} but target does not exist. Creating a placeholder and linking to it.")
 
-    if not safe:
-        logger.error("Path traversal attempt through symlink, removing", target=target)
-        error_report = MaliciousSymlinkRemoved(
-            link=path.as_posix(), target=target.as_posix()
-        )
-        task_result.add_report(error_report)
+        # We may need to create 1 or more directories before we can touch absolute_target
+        # track the directories we need to create
+        dirs_to_create = []
+        parent = absolute_target.parent
+        while parent and not parent.exists():
+            dirs_to_create.append(parent)
+            parent = parent.parent
+        if len(dirs_to_create):
+            # Just create all the directories we need at once
+            absolute_target.parent.mkdir(parents=True, exist_ok=True)
+        # Create the placeholder file
+        absolute_target.touch()
+
+        # Calculate new target relative to the symlink's directory
+        new_target = os.path.relpath(absolute_target, start=path.parent)
+        # Replace the symlink with the new target
         path.unlink()
+
+        if is_potential_loop(path, new_target):
+            logger.error(f"Potential symlink loop detected for {path} -> {new_target}. Skipping modification.")
+            return path
+
+        path.symlink_to(new_target)
+        logger.info(f"Symlink at {path} now points to {new_target}.")
+
+        # Remove the placeholder to intentionally leave a dangling symlink.
+        # Also remove directories we created for it
+        absolute_target.unlink()
+        for d in dirs_to_create:
+            os.rmdir(d)
+
+        logger.info(f"Removed placeholder {absolute_target}, leaving a dangling symlink at {path}->{absolute_target}.")
+        # Assert that the symlink is now dangling
+        assert(os.path.islink(path) and not os.path.exists(os.readlink(path)))
+
     else:
-        relative_target = os.path.relpath(outdir.joinpath(target), start=path.parent)
+        # If the target exists, simply adjust the symlink as necessary
+        new_target = os.path.relpath(absolute_target, start=path.parent)
         path.unlink()
-        path.symlink_to(relative_target)
+
+        if is_potential_loop(path, new_target):
+            logger.error(f"Potential symlink loop detected v2 for {path} -> {new_target}. Skipping modification.")
+            return path
+
+        path.symlink_to(new_target)
+        logger.debug(f"Symlink at {path} updated to point to {new_target}.")
+
     return path
-
 
 def fix_extracted_directory(outdir: Path, task_result: TaskResult):
     def _fix_extracted_directory(directory: Path):

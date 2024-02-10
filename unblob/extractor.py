@@ -36,7 +36,9 @@ def fix_extracted_directory(outdir: Path, task_result: TaskResult):
         return
 
     try:
-        check_output(["symlinks", "-cr", str(outdir)])
+        # We must run the symlinks command from within outdir for the -e flag
+        # to properly sanitize symlinks to be relative to outdir
+        check_output(["symlinks", "-rec", str(outdir)], cwd=outdir)
     except Exception as e:
         logger.error(f"Failed to run symlinks on {outdir}: {e}")
         # We should not continue if symlinks fails as our directory

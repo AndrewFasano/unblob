@@ -27,13 +27,14 @@ from .report import (
 DEFAULT_BUFSIZE = shutil.COPY_BUFSIZE  # type: ignore
 logger = get_logger()
 
+
 def is_safe_path(basedir: Path, path: Path) -> bool:
     try:
-        # This checks if the target_path, even after resolution, is within the basedir boundaries
-        path.relative_to(basedir.resolve())
-        return True
+        basedir.joinpath(path).resolve().relative_to(basedir.resolve())
     except ValueError:
         return False
+    return True
+
 
 class SeekError(ValueError):
     """Specific ValueError for File.seek."""

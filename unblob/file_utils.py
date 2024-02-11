@@ -291,6 +291,10 @@ def carve(carve_path: Path, file: File, start_offset: int, size: int, mode:int =
     """Extract part of a file."""
     carve_path.parent.mkdir(parents=True, exist_ok=True)
 
+    if carve_path.exists():
+        print(f"File {carve_path} already exists, skipping.")
+        return
+
     with carve_path.open("xb") as f:
         for data in iterate_file(file, start_offset, size):
             f.write(data)
@@ -581,7 +585,8 @@ class FileSystem:
         if safe_link:
             dst = safe_link.dst.absolute_path
             self._ensure_parent_dir(dst)
-            dst.symlink_to(src)
+            if not dst.exists():
+                dst.symlink_to(src)
 
     def create_hardlink(self, src: Path, dst: Path):
         """Create a new hardlink dst to the existing file src."""

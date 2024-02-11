@@ -476,6 +476,15 @@ class FileSystem:
     def _get_extraction_path(self, path: Path, path_use_description: str) -> Path:
         fs_path = self._fs_path(path)
 
+        if fs_path.absolute_path.exists():
+            report = ExtractionProblem(
+                path=str(fs_path.relative_path),
+                problem=f"Attempting to create a file that already exists through {path_use_description}",
+                resolution="Overwrite.",
+            )
+            fs_path.absolute_path.unlink()
+            self.record_problem(report)
+
         if not fs_path.is_safe:
             report = PathTraversalProblem(
                 path=str(fs_path.relative_path),
@@ -542,11 +551,16 @@ class FileSystem:
 
     def _get_checked_link(self, src: Path, dst: Path) -> Optional[_FSLink]:
         link = _FSLink(root=self.root, src=src, dst=dst)
-        if link.is_safe:
-            return link
 
-        self.record_problem(link.format_report("Potential path traversal through link"))
-        return None
+        if link.src.absolute_path.exists():
+            self.record_problem(link.format_report("File already exists."))
+            return None
+        if not link.is_safe:
+            self.record_problem(
+                link.format_report("Potential path traversal through link")
+            )
+            return None
+        return link
 
     def _path_to_root(self, from_dir: Path) -> Path:
         # This version does not look at the existing symlinks, so while it looks cleaner it is also

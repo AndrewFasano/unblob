@@ -14,8 +14,8 @@ from .report import MaliciousSymlinkRemoved
 
 logger = get_logger()
 
-FILE_PERMISSION_MASK = 0o644
-DIR_PERMISSION_MASK = 0o775
+FILE_PERMISSION_MASK = 0
+DIR_PERMISSION_MASK = 0
 
 # re-exported, or unused symbols
 __all__ = [

@@ -479,13 +479,22 @@ class FileSystem:
         fs_path = self._fs_path(path)
 
         if fs_path.absolute_path.exists():
-            report = ExtractionProblem(
-                path=str(fs_path.relative_path),
-                problem=f"Attempting to create a file that already exists through {path_use_description}",
-                resolution="Overwrite.",
-            )
-            fs_path.absolute_path.unlink()
-            self.record_problem(report)
+            if fs_path.absolute_path.is_file():
+                report = ExtractionProblem(
+                    path=str(fs_path.relative_path),
+                    problem=f"Attempting to create a file that already exists through {path_use_description}",
+                    resolution="Overwrite.",
+                )
+                self.record_problem(report)
+                fs_path.absolute_path.unlink()
+
+            elif fs_path.absolute_path.is_dir():
+                report = ExtractionProblem(
+                    path=str(fs_path.relative_path),
+                    problem=f"Attempting to create a directory that already exists through {path_use_description}",
+                    resolution="Ignore",
+                )
+                self.record_problem(report)
 
         if not fs_path.is_safe:
             report = PathTraversalProblem(

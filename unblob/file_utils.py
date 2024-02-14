@@ -565,7 +565,7 @@ class FileSystem:
     def _get_checked_link(self, src: Path, dst: Path) -> Optional[_FSLink]:
         link = _FSLink(root=self.root, src=src, dst=dst)
 
-        if link.src.absolute_path.exists():
+        if link.dst.absolute_path.exists():
             self.record_problem(link.format_report("File already exists."))
             return None
         if not link.is_safe:

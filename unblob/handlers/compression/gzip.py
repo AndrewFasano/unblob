@@ -170,6 +170,9 @@ class MultiVolumeGzipHandler(DirectoryHandler):
             [p for p in file.parent.glob(f"{file.stem}.*") if p.resolve().exists()]
         )
 
+        if not len(paths):
+            return None
+
         # we 'discard' paths that are not the first in the ordered list,
         # otherwise we will end up with colliding reports, one for every
         # path in the list.

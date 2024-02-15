@@ -117,7 +117,9 @@ class MultiVolumeSevenZipHandler(DirectoryHandler):
         size = calculate_sevenzip_size(header)
         logger.debug("Sevenzip header", header=header, size=size, _verbosity=3)
 
-        paths = sorted(file.parent.glob(f"{file.stem}.*"))
+        paths = sorted(
+            [p for p in file.parent.glob(f"{file.stem}.*") if p.resolve().exists()]
+        )
 
         files_size = sum(path.stat().st_size for path in paths)
         logger.debug(

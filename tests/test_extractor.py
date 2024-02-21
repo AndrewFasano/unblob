@@ -4,10 +4,7 @@ from pathlib import Path, PosixPath
 import pytest
 
 from unblob.extractor import (
-    DIR_PERMISSION_MASK,
-    FILE_PERMISSION_MASK,
     carve_unknown_chunk,
-    fix_extracted_directory,
     fix_permission,
     fix_symlink,
 )
@@ -45,13 +42,13 @@ def test_fix_permission(tmpdir: Path):
         tmpdir.chmod(permission)
         fix_permission(tmpdir)
         fix_permission(tmpfile)
-        assert (tmpdir.stat().st_mode & 0o777) == permission | DIR_PERMISSION_MASK
-        assert (tmpfile.stat().st_mode & 0o777) == permission | FILE_PERMISSION_MASK
+        assert (tmpdir.stat().st_mode & 0o777) == permission
+        assert (tmpfile.stat().st_mode & 0o777) == permission
         tmpfile.unlink()
         tmpdir.rmdir()
 
 
-def test_fix_extracted_directory(tmpdir: Path, task_result: TaskResult):
+def test_fix_extracted_directory(tmpdir: Path, task_result: TaskResult):  # noqa: ARG001
     tmpdir = PosixPath(tmpdir)
     subdir = PosixPath(tmpdir / "testdir2")
     subdir.mkdir()
@@ -62,10 +59,9 @@ def test_fix_extracted_directory(tmpdir: Path, task_result: TaskResult):
     subdir.chmod(0o200)
     tmpdir.chmod(0o200)
 
-    fix_extracted_directory(tmpdir, task_result)
-    assert (tmpdir.stat().st_mode & 0o777) == 0o775
-    assert (subdir.stat().st_mode & 0o777) == 0o775
-    assert (tmpfile.stat().st_mode & 0o777) == 0o644
+    assert (tmpdir.stat().st_mode & 0o777) == 0o200
+    assert (subdir.stat().st_mode & 0o777) == 0o200
+    assert (tmpfile.stat().st_mode & 0o777) == 0o200
 
 
 def test_fix_recursive_symlink(tmpdir: Path, task_result: TaskResult):

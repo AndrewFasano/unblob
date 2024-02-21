@@ -12,7 +12,7 @@ from unblob_native import math_tools as mt
 
 from unblob.handlers import BUILTIN_DIR_HANDLERS, BUILTIN_HANDLERS, Handlers
 
-from .extractor import carve_unknown_chunk, carve_valid_chunk, fix_extracted_directory
+from .extractor import carve_unknown_chunk, carve_valid_chunk
 from .file_utils import InvalidInputFormat, iterate_file
 from .finder import search_chunks
 from .iter_utils import pairwise
@@ -431,8 +431,6 @@ class _DirectoryTask:
 
         self.result.add_report(multi_file.as_report(extraction_reports))
 
-        fix_extracted_directory(extract_dir, self.result)
-
         return extract_dir
 
     def _iterate_processed_files(self, processed_paths):
@@ -599,7 +597,6 @@ class _FileTask:
             return
 
         if self.config.skip_extraction:
-            fix_extracted_directory(extract_dir, self.result)
             return
 
         extraction_reports = []
@@ -620,7 +617,6 @@ class _FileTask:
         self.result.add_report(chunk.as_report(extraction_reports))
 
         # we want to get consistent partial output even in case of unforeseen problems
-        fix_extracted_directory(extract_dir, self.result)
         delete_empty_extract_dir(extract_dir)
 
         if extract_dir.exists():

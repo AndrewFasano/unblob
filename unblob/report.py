@@ -122,15 +122,6 @@ class ExtractorTimedOut(ErrorReport):
 
 
 @attr.define(kw_only=True, frozen=True)
-class MaliciousSymlinkRemoved(ErrorReport):
-    """Describes an error when malicious symlinks have been removed from disk."""
-
-    severity: Severity = Severity.WARNING
-    link: str
-    target: str
-
-
-@attr.define(kw_only=True, frozen=True)
 class MultiFileCollisionReport(ErrorReport):
     """Describes an error when MultiFiles collide on the same file."""
 

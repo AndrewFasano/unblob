@@ -4,7 +4,7 @@ from pathlib import Path
 
 from structlog import get_logger
 
-from unblob.extractor import is_safe_path
+from unblob.file_utils import is_safe_path
 from unblob.report import ExtractionProblem
 
 logger = get_logger()

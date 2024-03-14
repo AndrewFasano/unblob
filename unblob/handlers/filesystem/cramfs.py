@@ -41,7 +41,7 @@ class CramFSHandler(StructHandler):
     """
     HEADER_STRUCT = "cramfs_header_t"
 
-    EXTRACTOR = Command("7z", "x", "-y", "{inpath}", "-o{outdir}")
+    EXTRACTOR = Command("cramfsck", "-x", "{outdir}", "{inpath}", make_outdir=False)
 
     def calculate_chunk(self, file: File, start_offset: int) -> Optional[ValidChunk]:
         endian = get_endian(file, BIG_ENDIAN_MAGIC)

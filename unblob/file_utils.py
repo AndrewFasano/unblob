@@ -503,7 +503,7 @@ class FileSystem:
         self._ensure_parent_dir(safe_path)
         safe_path.write_bytes(content)
 
-    def write_chunks(self, path: Path, chunks: Iterable[bytes]):
+    def write_chunks(self, path: Path, chunks: Iterable[bytes], mode: int = 0o644):
         logger.debug("creating file", file_path=path, _verbosity=3)
         safe_path = self._get_extraction_path(path, "write_chunks")
 
@@ -511,6 +511,8 @@ class FileSystem:
         with safe_path.open("wb") as f:
             for chunk in chunks:
                 f.write(chunk)
+
+        safe_path.chmod(mode)
 
     def carve(
         self, path: Path, file: File, start_offset: int, size: int, mode: int = 0o644

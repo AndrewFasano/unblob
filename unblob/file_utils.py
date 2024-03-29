@@ -298,7 +298,7 @@ def carve(
     carve_path: Path, file: File, start_offset: int, size: int, mode: int = 0o644
 ):
     """Extract part of a file."""
-    carve_path.parent.mkdir(parents=True, exist_ok=True)
+    carve_path.parent.mkdir(parents=True, exist_ok=True, mode=mode)
 
     with carve_path.open("xb") as f:
         for data in iterate_file(file, start_offset, size):

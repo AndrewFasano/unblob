@@ -528,6 +528,9 @@ class FileSystem:
         safe_path = self._get_extraction_path(path, "mkdir")
 
         safe_path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
+        if safe_path.stat().st_mode & 0o777 != mode & 0o777:
+            # For some reason mkdir is not setting the mode correctly
+            safe_path.chmod(mode)
 
     def mkfifo(self, path: Path, mode=0o666):
         logger.debug("creating fifo", path=path, _verbosity=3)
